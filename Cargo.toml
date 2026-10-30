@@ -1,0 +1,23 @@
+[package]
+name = "crownos-preview"
+version = "0.1.0"
+edition = "2024"
+description = "Quick-look previewer for CrownOS screenshots and recordings"
+
+[lib]
+name = "crownos_preview"
+path = "src/lib.rs"
+
+[[bin]]
+name = "crownos-preview"
+path = "src/main.rs"
+required-features = ["daemon"]
+
+[features]
+default = ["daemon"]
+daemon = ["dep:anyhow"]
+
+[dependencies]
+crownos-ipc = { path = "../crownos-ipc" }
+serde = { version = "1.0", features = ["derive"] }
+anyhow = { version = "1", optional = true }
