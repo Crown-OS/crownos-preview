@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Preview
+GenericName=File Previewer
+Comment=Look at pictures, PDFs, videos, music and text files
+Exec=crownos-preview %F
+Icon=org.gnome.Loupe
+Terminal=false
+StartupNotify=true
+StartupWMClass=crownpreview
+Categories=Graphics;Viewer;
+Keywords=quick look;image;photo;pdf;video;audio;markdown;
+MimeType=image/png;image/jpeg;image/gif;image/webp;image/tiff;image/bmp;image/vnd.microsoft.icon;image/x-icon;image/svg+xml;image/heic;image/heif;image/avif;application/pdf;video/mp4;video/x-m4v;video/x-matroska;video/webm;video/quicktime;video/x-msvideo;video/ogg;audio/mpeg;audio/flac;audio/x-flac;audio/ogg;audio/x-vorbis+ogg;audio/x-opus+ogg;audio/wav;audio/x-wav;audio/mp4;audio/x-m4a;audio/aac;text/markdown;text/x-markdown;text/plain;text/csv;text/tab-separated-values;
