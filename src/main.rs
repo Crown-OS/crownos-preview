@@ -1,45 +1,39 @@
-use std::path::PathBuf;
+mod document;
+mod launch;
+mod markup;
+mod media;
+mod pdf;
+mod picture;
+mod playlist;
+mod service;
+mod text;
+mod util;
+mod viewer;
 
 use anyhow::{Context, Result};
-use crownos_ipc::{RemoteError, ServiceBuilder, blocking};
-use crownos_preview::protocol::{self, Handler};
+use crownui::AppConfig;
+use crownui::kit::{INTER_FAMILY, inter_font};
 
-#[derive(Default)]
-struct Previewer {
-    current: Option<PathBuf>,
-}
+use launch::Request;
 
-impl Previewer {
-    fn show(&mut self, path: PathBuf) -> bool {
-        let previewable = path.is_file();
-        if previewable {
-            eprintln!("crownos-preview: open {}", path.display());
-            self.current = Some(path);
-        }
-        previewable
-    }
-}
-
-impl Handler for Previewer {
-    fn open(&mut self, path: String) -> Result<bool, RemoteError> {
-        Ok(self.show(PathBuf::from(path)))
-    }
-
-    fn close(&mut self) {
-        self.current = None;
-    }
-}
+const INITIAL_SIZE: (u32, u32) = (960, 680);
+const MIN_SIZE: (u32, u32) = (420, 320);
 
 fn main() -> Result<()> {
-    let mut previewer = Previewer::default();
-    if let Some(path) = std::env::args_os().nth(1) {
-        previewer.show(PathBuf::from(path));
+    let request = Request::from_args(std::env::args_os().skip(1))
+        .context("usage: crownos-preview [--edit] <previewable file>")?;
+    if service::forward_to_running(&request)? {
+        return Ok(());
     }
-    let mut server = ServiceBuilder::new(protocol::SERVICE)
-        .build()
-        .context("failed to bind the crownos-preview socket")?;
-    blocking::serve(&mut server, |server, peer, message| {
-        protocol::dispatch(&mut previewer, server, peer, message).map(|()| true)
-    })
-    .context("crownos-preview service stopped")
+    let server = service::bind()?;
+    let mut config = AppConfig::new("Preview")
+        .app_id("crownpreview")
+        .size(INITIAL_SIZE.0, INITIAL_SIZE.1)
+        .min_size(MIN_SIZE.0, MIN_SIZE.1)
+        .font(inter_font().to_vec(), Some(INTER_FAMILY));
+    if let Some(monospace) = util::fonts::monospace_font() {
+        config = config.font(monospace, Some(util::fonts::MONOSPACE_FAMILY));
+    }
+    crownui::run(viewer::root(request, server), config)?;
+    Ok(())
 }

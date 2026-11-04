@@ -15,9 +15,46 @@ required-features = ["daemon"]
 
 [features]
 default = ["daemon"]
-daemon = ["dep:anyhow"]
+daemon = [
+  "dep:anyhow",
+  "dep:crownui",
+  "dep:tokio",
+  "dep:image",
+  "dep:resvg",
+  "dep:libheif-rs",
+  "dep:poppler-rs",
+  "dep:cairo-rs",
+  "dep:glib",
+  "dep:gstreamer",
+  "dep:gstreamer-app",
+  "dep:gstreamer-video",
+  "dep:pulldown-cmark",
+  "dep:syntect",
+  "crownos-ipc/tokio",
+]
 
 [dependencies]
 crownos-ipc = { path = "../crownos-ipc" }
 serde = { version = "1.0", features = ["derive"] }
 anyhow = { version = "1", optional = true }
+crownui = { path = "../crownui/crownui", features = ["static"], optional = true }
+tokio = { version = "1", default-features = false, features = ["sync", "time"], optional = true }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "tiff", "bmp", "ico", "rayon"], optional = true }
+resvg = { version = "0.48", default-features = false, features = ["text", "system-fonts", "memmap-fonts"], optional = true }
+libheif-rs = { version = "2", optional = true }
+poppler-rs = { version = "0.26", optional = true }
+cairo-rs = { version = "0.22", features = ["pdf", "v1_16"], optional = true }
+glib = { version = "0.22", optional = true }
+gstreamer = { version = "0.25", optional = true }
+gstreamer-app = { version = "0.25", optional = true }
+gstreamer-video = { version = "0.25", optional = true }
+pulldown-cmark = { version = "0.13", default-features = false, optional = true }
+syntect = { version = "5", default-features = false, features = ["default-fancy"], optional = true }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+[dev-dependencies]
+crowntest = { path = "../crownui/crowntest" }
