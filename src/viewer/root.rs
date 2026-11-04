@@ -9,13 +9,16 @@ use crate::document::DocumentKind;
 use crate::launch::{Mode, Request};
 use crate::playlist::Playlist;
 use crate::service::{self, Command, Outgoing};
+use crate::util::file_uri::{URI_LIST_MIME, file_paths};
 use crate::util::mailbox::mailbox;
 use crate::util::siblings::{Direction, sibling};
+
+const EMPTY_STATE: &str = "Drop a picture, PDF, video, song or text file here to preview it.";
 
 /// Bumped to rebuild the shown document, e.g. after an edit was saved.
 type Revision = u64;
 
-pub fn root(initial: Request, server: Server) -> impl View {
+pub fn root(initial: Option<Request>, server: Server) -> impl View {
     component(move |cx| {
         provide_configured_theme(cx);
         let theme = use_theme(cx);
@@ -27,7 +30,12 @@ pub fn root(initial: Request, server: Server) -> impl View {
         let dismiss = {
             let outgoing = outgoing.clone();
             move |cx: &mut Cx| {
-                let path = current.with(cx, |request| request.path.display().to_string());
+                let path = current.with(cx, |request| {
+                    request
+                        .as_ref()
+                        .map(|request| request.path.display().to_string())
+                        .unwrap_or_default()
+                });
                 if outgoing.send(Outgoing::Closed { path }).is_err() {
                     std::process::exit(0);
                 }
@@ -37,18 +45,18 @@ pub fn root(initial: Request, server: Server) -> impl View {
         let commands = mailbox(cx, move |cx, command| match command {
             Command::Show(request) => {
                 playlist.update(cx, |list| *list = None);
-                current.set(cx, request);
+                current.set(cx, Some(request));
             }
             Command::ShowList(list) => {
                 if let Some(request) = list.request() {
                     playlist.update(cx, |listed| *listed = Some(list));
-                    current.set(cx, request);
+                    current.set(cx, Some(request));
                 }
             }
             Command::Select(index) => {
                 let selected = playlist.update(cx, |list| list.as_mut()?.select(index));
                 if let Some(request) = selected {
-                    current.set(cx, request);
+                    current.set(cx, Some(request));
                 }
             }
             Command::Close => dismiss(cx),
@@ -59,7 +67,7 @@ pub fn root(initial: Request, server: Server) -> impl View {
         );
 
         let reload = move |cx: &mut Cx, request: Request| {
-            current.set(cx, request);
+            current.set(cx, Some(request));
             revision.update(cx, |revision| *revision += 1);
         };
 
@@ -67,7 +75,10 @@ pub fn root(initial: Request, server: Server) -> impl View {
             move |rt| (current.get(rt), revision.get(rt)),
             move |cx, (request, _)| {
                 shortcuts.set(cx, Shortcuts::default());
-                document_view(request, reload)
+                match request {
+                    Some(request) => document_view(request, reload),
+                    None => super::chrome::notice(EMPTY_STATE).boxed(),
+                }
             },
         )
         .grow(1.0)
@@ -90,15 +101,29 @@ pub fn root(initial: Request, server: Server) -> impl View {
             if let Some((index, request)) = stepped {
                 let path = request.path.display().to_string();
                 let _ = outgoing.send(Outgoing::Navigated { index, path });
-                current.set(cx, request);
+                current.set(cx, Some(request));
                 return;
             }
             let listed = playlist.with(cx, Option::is_some);
             let neighbour = (!listed)
-                .then(|| current.with(cx, |request| sibling(&request.path, direction)))
+                .then(|| current.with(cx, |request| sibling(&request.as_ref()?.path, direction)))
                 .flatten();
             if let Some(request) = neighbour.and_then(|path| Request::new(path, Mode::View)) {
-                current.set(cx, request);
+                current.set(cx, Some(request));
+            }
+        })
+        .on_drag_over(|_, event| {
+            if event.offers(URI_LIST_MIME) {
+                event.accept(URI_LIST_MIME);
+            }
+        })
+        .on_drop(move |cx, event| {
+            let dropped = std::str::from_utf8(&event.data).ok().and_then(|uri_list| {
+                file_paths(uri_list).find_map(|path| Request::new(path, Mode::View))
+            });
+            if let Some(request) = dropped {
+                playlist.update(cx, |list| *list = None);
+                current.set(cx, Some(request));
             }
         })
     })

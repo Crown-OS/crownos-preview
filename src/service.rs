@@ -72,9 +72,14 @@ pub fn bind() -> Result<Server> {
 }
 
 /// Hands `request` to an already running previewer; `false` when none runs.
-pub fn forward_to_running(request: &Request) -> Result<bool> {
+/// With no request there is nothing to hand over, so a running previewer is
+/// left as it is.
+pub fn forward_to_running(request: Option<&Request>) -> Result<bool> {
     let Ok(mut client) = Client::connect() else {
         return Ok(false);
+    };
+    let Some(request) = request else {
+        return Ok(true);
     };
     let path = request
         .path

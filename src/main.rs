@@ -18,11 +18,15 @@ use launch::Request;
 
 const INITIAL_SIZE: (u32, u32) = (960, 680);
 const MIN_SIZE: (u32, u32) = (420, 320);
+const USAGE: &str = "usage: crownos-preview [--edit] [previewable file]";
 
 fn main() -> Result<()> {
-    let request = Request::from_args(std::env::args_os().skip(1))
-        .context("usage: crownos-preview [--edit] <previewable file>")?;
-    if service::forward_to_running(&request)? {
+    let mut args = std::env::args_os().skip(1).peekable();
+    let request = match args.peek() {
+        None => None,
+        Some(_) => Some(Request::from_args(args).context(USAGE)?),
+    };
+    if service::forward_to_running(request.as_ref())? {
         return Ok(());
     }
     let server = service::bind()?;

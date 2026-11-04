@@ -1,4 +1,5 @@
 pub mod background;
+pub mod file_uri;
 pub mod fit;
 pub mod fonts;
 pub mod mailbox;
