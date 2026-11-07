@@ -7,7 +7,7 @@ use crownui::ext::{ImageId, Key, NamedKey};
 use crownui::kit::{SliderOptions, icon, icon_button, icons, slider, use_theme};
 use crownui::prelude::*;
 
-use super::chrome::{file_name, notice, toolbar};
+use super::chrome::{content_card, file_name, notice, title_bar, window_frame};
 use super::shortcuts::on_shortcut;
 use crate::document::DocumentKind;
 use crate::media::{Player, PlayerEvent, VideoFrame};
@@ -164,17 +164,18 @@ pub fn media_view(path: PathBuf, kind: DocumentKind) -> impl View {
         } else {
             video_canvas(playback).boxed()
         };
-        vstack((
-            toolbar(file_name(&path), ()),
-            show(
-                bind(move |rt| playback.failure.with(rt, Option::is_some)),
-                move || notice(bind(move |rt| playback.failure.get(rt).unwrap_or_default())),
-                move || hstack(()),
-            ),
-            vstack((stage,)).grow(1.0),
-            transport(playback),
-        ))
-        .grow(1.0)
+        window_frame(
+            title_bar((), file_name(&path), (), ()),
+            content_card((
+                show(
+                    bind(move |rt| playback.failure.with(rt, Option::is_some)),
+                    move || notice(bind(move |rt| playback.failure.get(rt).unwrap_or_default())),
+                    move || hstack(()),
+                ),
+                vstack((stage,)).grow(1.0),
+                transport(playback),
+            )),
+        )
     })
 }
 

@@ -4,7 +4,8 @@ use crownui::ext::{ImageId, Key, NamedKey};
 use crownui::kit::{ButtonOptions, ButtonVariant, button, icons, use_theme};
 use crownui::prelude::*;
 
-use super::chrome::{file_name, notice, tool, toolbar};
+use super::chrome::{content_card, file_name, notice, title_bar, window_frame};
+use super::control_pill::{floating_controls, pill_button, pill_label};
 use super::shortcuts::on_shortcut;
 use super::stage::Stage;
 use crate::document::DocumentKind;
@@ -15,6 +16,8 @@ use crate::util::background::in_background;
 use crate::util::fonts::system_fonts;
 use crate::util::measured_canvas::measured_canvas;
 use crate::util::timer::after;
+
+const ZOOM_LABEL_WIDTH: f32 = 72.0;
 
 #[derive(Clone, Copy, PartialEq)]
 struct Shown {
@@ -99,18 +102,10 @@ pub fn image_view(
             true
         });
 
-        let controls = (
+        let trailing = (
             text(bind(move |rt| status.get(rt)))
                 .text_size(12.0)
                 .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.muted))),
-            tool(icons::ZOOM_OUT, "Zoom out", move |cx| stage.zoom_out(cx)),
-            text(bind(move |rt| stage.percent(rt)))
-                .text_size(12.0)
-                .min_w(44.0)
-                .text_center()
-                .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.body))),
-            tool(icons::ZOOM_IN, "Zoom in", move |cx| stage.zoom_in(cx)),
-            tool(icons::SCAN, "Zoom to fit", move |cx| stage.reset(cx)),
             show(
                 bind(move |rt| editable && !editing.get(rt)),
                 move || {
@@ -123,22 +118,33 @@ pub fn image_view(
             ),
         );
 
-        vstack((
-            toolbar(file_name(&path), controls),
-            show(
-                bind(move |rt| editing.get(rt)),
-                move || markup_toolbar(markup, cancel, done),
-                || hstack(()),
-            ),
-            show(
-                bind(move |rt| failure.with(rt, Option::is_some)),
-                move || notice(bind(move |rt| failure.get(rt).unwrap_or_default())),
-                move || picture_canvas(stage, frames, frame_index, editing, markup),
-            )
-            .grow(1.0),
-        ))
-        .grow(1.0)
+        window_frame(
+            title_bar((), file_name(&path), (), trailing),
+            content_card((
+                show(
+                    bind(move |rt| editing.get(rt)),
+                    move || markup_toolbar(markup, cancel, done),
+                    || hstack(()),
+                ),
+                show(
+                    bind(move |rt| failure.with(rt, Option::is_some)),
+                    move || notice(bind(move |rt| failure.get(rt).unwrap_or_default())),
+                    move || picture_canvas(stage, frames, frame_index, editing, markup),
+                )
+                .grow(1.0),
+                floating_controls(zoom_controls(stage)),
+            )),
+        )
     })
+}
+
+fn zoom_controls(stage: Stage) -> Vec<AnyView> {
+    vec![
+        pill_button(icons::ZOOM_OUT, "Zoom out", move |cx| stage.zoom_out(cx)),
+        pill_label(bind(move |rt| stage.percent(rt)), ZOOM_LABEL_WIDTH),
+        pill_button(icons::ZOOM_IN, "Zoom in", move |cx| stage.zoom_in(cx)),
+        pill_button(icons::SCAN, "Zoom to fit", move |cx| stage.reset(cx)),
+    ]
 }
 
 fn show_picture(
@@ -239,6 +245,10 @@ fn picture_canvas(
                 super::zoom::Zoom::Scale(_) => stage.reset(cx),
             }
         }
+    })
+    .on_pinch(move |cx, event| {
+        stage.pinch(cx, event.detail().scale);
+        event.prevent_default();
     })
     .on_wheel(move |cx, event| {
         stage.wheel(cx, event.detail());

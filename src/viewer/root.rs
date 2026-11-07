@@ -1,8 +1,9 @@
 use crownos_ipc::Server;
 use crownui::ext::{Key, NamedKey};
-use crownui::kit::{provide_configured_theme, use_theme};
+use crownui::kit::provide_configured_theme;
 use crownui::prelude::*;
 
+use super::chrome::{file_name, notice_window};
 use super::shortcuts::{Shortcuts, dispatch_shortcut, provide_shortcuts};
 use super::{image_view, media_view, pdf_view, text_view};
 use crate::document::DocumentKind;
@@ -12,7 +13,10 @@ use crate::service::{self, Command, Outgoing};
 use crate::util::file_uri::{URI_LIST_MIME, file_paths};
 use crate::util::mailbox::mailbox;
 use crate::util::siblings::{Direction, sibling};
+use crate::util::window_radius::provide_configured_window_radius;
 
+const APP_NAME: &str = "Preview";
+const UNPREVIEWABLE: &str = "This file cannot be previewed.";
 const EMPTY_STATE: &str = "Drop a picture, PDF, video, song or text file here to preview it.";
 
 /// Bumped to rebuild the shown document, e.g. after an edit was saved.
@@ -21,7 +25,7 @@ type Revision = u64;
 pub fn root(initial: Option<Request>, server: Server) -> impl View {
     component(move |cx| {
         provide_configured_theme(cx);
-        let theme = use_theme(cx);
+        provide_configured_window_radius(cx);
         let shortcuts = provide_shortcuts(cx);
         let current = cx.signal(initial);
         let playlist = cx.store(None::<Playlist>);
@@ -77,12 +81,12 @@ pub fn root(initial: Option<Request>, server: Server) -> impl View {
                 shortcuts.set(cx, Shortcuts::default());
                 match request {
                     Some(request) => document_view(request, reload),
-                    None => super::chrome::notice(EMPTY_STATE).boxed(),
+                    None => notice_window(APP_NAME, EMPTY_STATE).boxed(),
                 }
             },
         )
         .grow(1.0)
-        .bg(bind(move |rt| theme.with(rt, |theme| theme.surface.bg)))
+        .min_h(0.0)
         .on_key_down(move |cx, event| {
             if event.is_default_prevented() || dispatch_shortcut(cx, shortcuts, event.detail()) {
                 return;
@@ -131,7 +135,7 @@ pub fn root(initial: Option<Request>, server: Server) -> impl View {
 
 fn document_view(request: Request, reload: impl Fn(&mut Cx, Request) + Copy + 'static) -> AnyView {
     let Some(kind) = DocumentKind::of(&request.path) else {
-        return super::chrome::notice("This file cannot be previewed.").boxed();
+        return notice_window(file_name(&request.path), UNPREVIEWABLE).boxed();
     };
     match kind {
         DocumentKind::Raster | DocumentKind::Vector | DocumentKind::Heif => {

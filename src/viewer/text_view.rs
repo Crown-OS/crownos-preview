@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crownui::kit::{Theme, ThemeMode, use_theme};
 use crownui::prelude::*;
 
-use super::chrome::{file_name, notice, toolbar};
+use super::chrome::{content_card, file_name, notice, title_bar, window_frame};
 use super::line_list::{ROW_HEIGHT, line_list};
 use crate::document::DocumentKind;
 use crate::text::{Block, Line, blocks, highlight, read_text};
@@ -63,9 +63,11 @@ pub fn text_view(path: PathBuf, kind: DocumentKind) -> impl View {
             },
         );
 
-        vstack((
-            toolbar(
+        window_frame(
+            title_bar(
+                (),
                 file_name(&path),
+                (),
                 (text(bind(move |rt| match phase.get(rt) {
                     Phase::Ready { truncated: true } => "Showing the first 2 MB".to_owned(),
                     _ => String::new(),
@@ -73,7 +75,7 @@ pub fn text_view(path: PathBuf, kind: DocumentKind) -> impl View {
                 .text_size(12.0)
                 .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.muted))),),
             ),
-            keyed(
+            content_card((keyed(
                 move |rt| phase.get(rt),
                 move |cx, phase| match phase {
                     Phase::Loading => vstack(()).boxed(),
@@ -87,9 +89,8 @@ pub fn text_view(path: PathBuf, kind: DocumentKind) -> impl View {
                     },
                 },
             )
-            .grow(1.0),
-        ))
-        .grow(1.0)
+            .grow(1.0),)),
+        )
     })
 }
 

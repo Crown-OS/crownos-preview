@@ -1,10 +1,13 @@
 use std::path::PathBuf;
 
 use crownui::ext::{DrawList, Key, KeyboardEvent, NamedKey};
-use crownui::kit::{TextInputOptions, icons, text_input, use_theme};
+use crownui::kit::{FieldShape, TextInputOptions, icons, text_input, use_theme};
 use crownui::prelude::*;
 
-use super::chrome::{file_name, notice, tool, toolbar};
+use super::chrome::{
+    FRAME_PADDING, content_card, file_name, notice, title_bar, tool, window_frame,
+};
+use super::control_pill::{floating_controls, pill_button, pill_label};
 use super::pdf_sidebar::pdf_sidebar;
 use super::pdf_state::{PAGE_GAP, PdfState, page_rects};
 use super::shortcuts::on_shortcut;
@@ -12,10 +15,12 @@ use super::zoom::Zoom;
 use crate::pdf::{self, PdfRequest};
 use crate::util::mailbox::mailbox;
 use crate::util::measured_canvas::measured_canvas;
+use crate::util::pinch::PinchTracker;
 use crate::util::rect::spanned;
 
 const LINE_HEIGHT: f32 = 40.0;
-const SEARCH_FIELD_WIDTH: f32 = 180.0;
+const SEARCH_FIELD_WIDTH: f32 = 280.0;
+const PAGE_LABEL_WIDTH: f32 = 88.0;
 const PAGE_SHADOW: Color = rgba(0x00000040);
 const MATCH_FILL: Color = rgba(0xffcc0066);
 const CURRENT_MATCH_FILL: Color = rgba(0xff9500aa);
@@ -47,60 +52,28 @@ pub fn pdf_view(path: PathBuf) -> impl View {
 
         on_shortcut(cx, move |cx, event| page_shortcut(cx, state, event));
 
-        let controls = (
-            text(bind(move |rt| state.status.get(rt)))
-                .text_size(12.0)
-                .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.muted))),
-            text_input(query)
-                .placeholder("Search")
-                .leading_icon(icons::SEARCH)
-                .width(SEARCH_FIELD_WIDTH)
-                .on_submit(move |cx, _| search(cx)),
-            tool(icons::CHEVRON_UP, "Previous match", move |cx| {
-                state.step_match(cx, false)
-            }),
-            tool(icons::CHEVRON_DOWN, "Next match", move |cx| {
-                state.step_match(cx, true)
-            }),
-            text(bind(move |rt| {
-                let count = state.pages.with(rt, Vec::len);
-                if count == 0 {
-                    String::new()
-                } else {
-                    format!("{} / {count}", state.current_page(rt) + 1)
-                }
-            }))
+        let status = text(bind(move |rt| state.status.get(rt)))
             .text_size(12.0)
-            .min_w(56.0)
-            .text_center()
-            .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.body))),
-            tool(icons::ZOOM_OUT, "Zoom out", move |cx| {
-                state.change_zoom(cx, Zoom::zoomed_out)
-            }),
-            tool(icons::ZOOM_IN, "Zoom in", move |cx| {
-                state.change_zoom(cx, Zoom::zoomed_in)
-            }),
-            tool(icons::MOVE_HORIZONTAL, "Fit width", move |cx| {
-                state.set_zoom(cx, Zoom::Fit)
-            }),
-            tool(icons::SCAN, "Actual size", move |cx| {
-                state.set_zoom(cx, Zoom::Scale(1.0))
-            }),
-        );
+            .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.muted)));
+        let search_field = text_input(query)
+            .placeholder("Search")
+            .leading_icon(icons::SEARCH)
+            .shape(FieldShape::Pill)
+            .width(SEARCH_FIELD_WIDTH)
+            .on_submit(move |cx, _| search(cx));
+        let sidebar_toggle = tool(icons::PANEL_LEFT, "Sidebar", move |cx| {
+            sidebar_open.update(cx, |open| *open = !*open)
+        });
 
-        vstack((
-            toolbar(
-                file_name(&path),
-                (
-                    tool(icons::PANEL_LEFT, "Sidebar", move |cx| {
-                        sidebar_open.update(cx, |open| *open = !*open)
-                    }),
-                    controls,
-                ),
-            ),
+        window_frame(
+            title_bar(sidebar_toggle, file_name(&path), search_field, status),
             show(
                 bind(move |rt| state.failure.with(rt, Option::is_some)),
-                move || notice(bind(move |rt| state.failure.get(rt).unwrap_or_default())),
+                move || {
+                    content_card(notice(bind(move |rt| {
+                        state.failure.get(rt).unwrap_or_default()
+                    })))
+                },
                 move || {
                     hstack((
                         show(
@@ -108,15 +81,54 @@ pub fn pdf_view(path: PathBuf) -> impl View {
                             move || pdf_sidebar(state),
                             || hstack(()),
                         ),
-                        pages_canvas(state, device_scale),
+                        content_card((
+                            pages_canvas(state, device_scale),
+                            floating_controls(page_controls(state)),
+                        )),
                     ))
+                    .gap(FRAME_PADDING)
                     .grow(1.0)
+                    .min_h(0.0)
                 },
             )
-            .grow(1.0),
-        ))
-        .grow(1.0)
+            .grow(1.0)
+            .min_h(0.0),
+        )
     })
+}
+
+fn page_controls(state: PdfState) -> Vec<AnyView> {
+    vec![
+        pill_button(icons::CHEVRON_UP, "Previous match", move |cx| {
+            state.step_match(cx, false)
+        }),
+        pill_button(icons::CHEVRON_DOWN, "Next match", move |cx| {
+            state.step_match(cx, true)
+        }),
+        pill_label(
+            bind(move |rt| {
+                let count = state.pages.with(rt, Vec::len);
+                if count == 0 {
+                    String::new()
+                } else {
+                    format!("{} / {count}", state.current_page(rt) + 1)
+                }
+            }),
+            PAGE_LABEL_WIDTH,
+        ),
+        pill_button(icons::ZOOM_OUT, "Zoom out", move |cx| {
+            state.change_zoom(cx, Zoom::zoomed_out)
+        }),
+        pill_button(icons::ZOOM_IN, "Zoom in", move |cx| {
+            state.change_zoom(cx, Zoom::zoomed_in)
+        }),
+        pill_button(icons::MOVE_HORIZONTAL, "Fit width", move |cx| {
+            state.set_zoom(cx, Zoom::Fit)
+        }),
+        pill_button(icons::SCAN, "Actual size", move |cx| {
+            state.set_zoom(cx, Zoom::Scale(1.0))
+        }),
+    ]
 }
 
 fn pages_canvas(state: PdfState, device_scale: Signal<f32>) -> impl View {
@@ -125,6 +137,7 @@ fn pages_canvas(state: PdfState, device_scale: Signal<f32>) -> impl View {
 
 fn pages_canvas_in(cx: &mut Cx, state: PdfState, device_scale: Signal<f32>) -> impl View + use<> {
     let anchor = cx.store(Point::ZERO);
+    let pinch = cx.store(PinchTracker::default());
     let to_document = move |rt: &mut Runtime, point: Point| {
         let scroll = state.scroll.get(rt);
         Point::new(point.x + scroll.x, point.y + scroll.y)
@@ -145,6 +158,11 @@ fn pages_canvas_in(cx: &mut Cx, state: PdfState, device_scale: Signal<f32>) -> i
         } else {
             state.scroll_by(cx, delta.x, delta.y);
         }
+        event.prevent_default();
+    })
+    .on_pinch(move |cx, event| {
+        let factor = pinch.update(cx, |pinch| pinch.step(event.detail().scale));
+        state.change_zoom(cx, |zoom, fit| zoom.multiplied(factor, fit));
         event.prevent_default();
     })
     .on_drag_start(move |cx, event| {

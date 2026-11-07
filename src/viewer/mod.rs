@@ -1,4 +1,5 @@
 mod chrome;
+mod control_pill;
 mod image_view;
 mod line_list;
 mod media_view;

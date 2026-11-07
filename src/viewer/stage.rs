@@ -1,8 +1,9 @@
 use crownui::ext::WheelEvent;
-use crownui::prelude::{Cx, Point, Rect, Runtime, Signal, Size, Vector};
+use crownui::prelude::{Cx, Point, Rect, Runtime, Signal, Size, Store, Vector};
 
 use super::zoom::Zoom;
 use crate::util::fit::{centered, fit_scale};
+use crate::util::pinch::PinchTracker;
 
 const LINE_HEIGHT: f32 = 40.0;
 const WHEEL_ZOOM_STEP: f32 = 1.1;
@@ -14,6 +15,7 @@ pub struct Stage {
     pub content: Signal<Size>,
     pub zoom: Signal<Zoom>,
     pub pan: Signal<Point>,
+    pinch: Store<PinchTracker>,
 }
 
 impl Stage {
@@ -23,6 +25,7 @@ impl Stage {
             content: cx.signal(Size::new(0.0, 0.0)),
             zoom: cx.signal(Zoom::Fit),
             pan: cx.signal(Point::ZERO),
+            pinch: cx.store(PinchTracker::default()),
         }
     }
 
@@ -98,6 +101,12 @@ impl Stage {
         } else {
             self.pan_by(cx, Vector::new(-delta.x, -delta.y));
         }
+    }
+
+    /// `scale` is the pinch's scale since it began.
+    pub fn pinch(self, cx: &mut Cx, scale: f32) {
+        let factor = self.pinch.update(cx, |pinch| pinch.step(scale));
+        self.zoom_by(cx, factor);
     }
 
     pub fn percent(self, rt: &mut Runtime) -> String {

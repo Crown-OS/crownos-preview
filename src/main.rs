@@ -13,6 +13,7 @@ mod viewer;
 use anyhow::{Context, Result};
 use crownui::AppConfig;
 use crownui::kit::{INTER_FAMILY, inter_font};
+use crownui::prelude::{BLACK, CornerShape};
 
 use launch::Request;
 
@@ -34,6 +35,8 @@ fn main() -> Result<()> {
         .app_id("crownpreview")
         .size(INITIAL_SIZE.0, INITIAL_SIZE.1)
         .min_size(MIN_SIZE.0, MIN_SIZE.1)
+        .clear_color(BLACK)
+        .corner_shape(CornerShape::Squircle)
         .font(inter_font().to_vec(), Some(INTER_FAMILY));
     if let Some(monospace) = util::fonts::monospace_font() {
         config = config.font(monospace, Some(util::fonts::MONOSPACE_FAMILY));

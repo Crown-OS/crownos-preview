@@ -20,7 +20,6 @@ enum Panel {
 
 pub fn pdf_sidebar(state: PdfState) -> impl View {
     component(move |cx| {
-        let theme = use_theme(cx);
         let selected = cx.signal(0_usize);
         let current_page = cx.memo(move |rt| state.current_page(rt));
         let page_numbers = cx.signal(Vec::<usize>::new());
@@ -59,9 +58,7 @@ pub fn pdf_sidebar(state: PdfState) -> impl View {
         ))
         .w(SIDEBAR_WIDTH)
         .shrink(0.0)
-        .pt(8.0)
         .gap(8.0)
-        .bg(bind(move |rt| theme.with(rt, |theme| theme.surface.sunken)))
     })
 }
 
@@ -114,7 +111,7 @@ fn thumbnail(
         .h(THUMBNAIL_BOX.height),
         text(bind(move |rt| (page.get(rt) + 1).to_string()))
             .text_size(11.0)
-            .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.muted))),
+            .text_color(bind(move |rt| theme.with(rt, |theme| theme.sidebar.text))),
     ))
     .items_center()
     .gap(4.0)
@@ -164,14 +161,18 @@ fn heading_row(
         .pr(10.0)
         .mx(6.0)
         .rounded(6.0)
-        .text_color(bind(move |rt| theme.with(rt, |theme| theme.text.body)))
-        .hover(move |style| style.bg(rgba(0x8080802e)))
+        .text_color(bind(move |rt| theme.with(rt, |theme| theme.sidebar.text)))
+        .hover(move |style| {
+            style.bg(bind(move |rt| {
+                theme.with(rt, |theme| theme.sidebar.hover_bg)
+            }))
+        })
         .on_click(move |cx, _| state.go_to_page(cx, entry.page))
 }
 
 fn highlight(theme: &Theme, highlighted: bool) -> Color {
     if highlighted {
-        theme.surface.hover
+        theme.sidebar.selected_bg
     } else {
         TRANSPARENT
     }
