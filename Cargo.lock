@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "accessibility"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "accesskit",
  "accesskit_unix",
@@ -671,7 +671,7 @@ checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
 
 [[package]]
 name = "crownconfig"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "crownos-config",
  "serde",
@@ -738,7 +738,7 @@ dependencies = [
 
 [[package]]
 name = "crowntest"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
  "graphics",
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "crownui"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
  "gesture",
@@ -1183,14 +1183,14 @@ dependencies = [
 
 [[package]]
 name = "geometry"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "gesture"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
  "input",
@@ -1328,9 +1328,10 @@ dependencies = [
 
 [[package]]
 name = "graphics"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
+ "rustc-hash",
  "smallvec",
  "thiserror",
 ]
@@ -1578,7 +1579,7 @@ checksum = "6e44b0a4eaa4c82f441d50a963f2d5f05a787240aeee097597033e72accfd22f"
 
 [[package]]
 name = "impeller"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "ash",
  "geometry",
@@ -1588,6 +1589,7 @@ dependencies = [
  "khronos-egl",
  "png",
  "raw-window-handle",
+ "rustc-hash",
  "thiserror",
  "tracing",
  "wayland-egl",
@@ -1638,7 +1640,7 @@ dependencies = [
 
 [[package]]
 name = "input"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
  "serde",
@@ -1647,7 +1649,7 @@ dependencies = [
 
 [[package]]
 name = "inspect"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]
@@ -1761,7 +1763,7 @@ dependencies = [
 
 [[package]]
 name = "layouting"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
 ]
@@ -1878,7 +1880,7 @@ dependencies = [
 
 [[package]]
 name = "mcp"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "base64",
  "input",
@@ -1950,7 +1952,7 @@ dependencies = [
 
 [[package]]
 name = "motion"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
 ]
@@ -2582,7 +2584,7 @@ dependencies = [
 
 [[package]]
 name = "reactive"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "slotmap",
  "smallvec",
@@ -2730,7 +2732,7 @@ dependencies = [
 
 [[package]]
 name = "runtime"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "accessibility",
  "crossbeam-channel",
@@ -2741,6 +2743,7 @@ dependencies = [
  "layouting",
  "mcp",
  "motion",
+ "rustc-hash",
  "semantics",
  "serde_json",
  "thiserror",
@@ -2749,6 +2752,12 @@ dependencies = [
  "view",
  "windowing",
 ]
+
+[[package]]
+name = "rustc-hash"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b1e7f9a428571be2dc5bc0505c13fb6bf936822b894ec87abf8a08a4e51742d"
 
 [[package]]
 name = "rustix"
@@ -2812,7 +2821,7 @@ checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 
 [[package]]
 name = "semantics"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
  "input",
@@ -3136,7 +3145,7 @@ dependencies = [
 
 [[package]]
 name = "taffy-layout"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
  "layouting",
@@ -3504,7 +3513,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "view"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "geometry",
  "gesture",
@@ -3514,6 +3523,7 @@ dependencies = [
  "layouting",
  "motion",
  "reactive",
+ "rustc-hash",
  "semantics",
  "slotmap",
  "smallvec",
@@ -3740,7 +3750,7 @@ checksum = "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88"
 
 [[package]]
 name = "widgets"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "blinc_icons",
  "crownconfig",
@@ -3769,7 +3779,7 @@ dependencies = [
 
 [[package]]
 name = "windowing"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "bitflags",
  "crownos-protocols",
