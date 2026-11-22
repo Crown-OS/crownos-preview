@@ -58,5 +58,12 @@ lto = "thin"
 codegen-units = 1
 strip = "symbols"
 
+[[example]]
+name = "design_capture"
+required-features = ["daemon"]
+
 [dev-dependencies]
 crowntest = { path = "../crownui/crowntest" }
+capture = { path = "../crownui/capture" }
+view = { path = "../crownui/view" }
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "time", "sync"] }
